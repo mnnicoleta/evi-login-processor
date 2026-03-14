@@ -1,0 +1,83 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.11'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.evi-data-login-tracker'
+version = '0.0.1-SNAPSHOT'
+description = 'Evi data login tracker'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring WebFlux & Reactive
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'io.projectreactor.kafka:reactor-kafka'
+
+    // Spring Batch for performance
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
+
+    // JPA + DB
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // Spring Data R2DBC (Reactive database access)
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+
+    // R2DBC PostgreSQL driver
+    implementation 'org.postgresql:r2dbc-postgresql'
+
+    // JSON support
+    implementation 'org.springframework.boot:spring-boot-starter-json'
+
+    // MapStruct
+    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Testing
+    testImplementation 'io.projectreactor:reactor-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.springframework.batch:spring-batch-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'org.testcontainers:postgresql'
+
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+springBoot {
+    mainClass = 'com.evi.login.data.processor.EviLoginProcessorApplication'
+    buildInfo()
+}
+
+tasks.named('bootJar') {
+    archiveFileName = "${project.name}-${project.version}.jar"
+}
+
+tasks.withType(Test) {
+    useJUnitPlatform()
+}

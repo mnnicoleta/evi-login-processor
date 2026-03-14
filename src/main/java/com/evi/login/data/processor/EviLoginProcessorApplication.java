@@ -1,4 +1,4 @@
-package com.evi_login_data_processor.evi_login_processor;
+package com.evi.login.data.processor;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
