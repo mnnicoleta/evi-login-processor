@@ -1,8 +1,12 @@
-# evi-data-login-processor
+# evi-login-processor
 
 ## Project Description
 
-The **evi-data-login-processor** is a Spring Boot reactive microservice designed to process customer login events in real-time using **Apache Kafka** and **WebFlux**. The service ensures **exactly-once processing** for each login event, avoiding duplicate database saves or duplicate event publishing.
+The **evi-login-processor** is a Spring Boot reactive microservice designed to process customer login events in
+real-time using **Apache Kafka** and **WebFlux**. The service ensures **exactly-once processing** for each login event,
+avoiding duplicate database saves or duplicate event publishing.
+
+Architecture diagram : [evi-login-tracker.excalidraw](./docs/evi-login-tracker.excalidraw)
 
 It handles the following workflow:
 
@@ -47,7 +51,8 @@ It handles the following workflow:
 - requestResult ('successful' or 'unsuccessful')
 ```
 
-* Only **after a successful save** in the database, it publishes the enriched message to the final topic: `login-tracking-result`.
+* Only **after a successful save** in the database, it publishes the enriched message to the final topic:
+  `login-tracking-result`.
 
 ---
 
@@ -77,7 +82,7 @@ This guarantees reliable end-to-end message processing without message loss or d
 ## Kafka Topics Overview
 
 | Topic Name              | Description                                                |
-| ----------------------- | ---------------------------------------------------------- |
+|-------------------------|------------------------------------------------------------|
 | `customer-login`        | Incoming login events                                      |
 | `customer-login-result` | Events enriched with REST call result                      |
 | `login-tracking-result` | Events saved successfully in DB and finalized for tracking |
@@ -122,7 +127,8 @@ login-tracking-result topic
 ./gradlew bootRun
 ```
 
-5. Ensure Kafka topics (`customer-login`, `customer-login-result`, `login-tracking-result`) exist or are auto-created by Kafka.
+5. Ensure Kafka topics (`customer-login`, `customer-login-result`, `login-tracking-result`) exist or are auto-created by
+   Kafka.
 
 ---
 

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: evi-data-login-tracker
+    name: evi-login-tracker
   kafka:
     bootstrap-servers: kafka:9092
     producer:
