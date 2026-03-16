@@ -5,14 +5,12 @@ import com.evi.login.processor.mapper.LoginTrackingResultMapper;
 import com.evi.login.processor.model.LoginTrackingResultEvent;
 import com.evi.login.processor.repository.LoginTrackingRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.mapstruct.factory.Mappers;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-import static com.evi.login.processor.constants.KafkaConstants.CONSUMER_CUSTOMER_LOGIN_RESULT;
-import static com.evi.login.processor.constants.KafkaConstants.CUSTOMER_LOGIN_RESULT;
+import static com.evi.login.processor.kafka.KafkaConstants.*;
 
 @Slf4j
 @Component
@@ -30,11 +28,11 @@ public class CustomerLoginResultConsumer {
         this.mapper = mapper;
     }
 
-    @KafkaListener(topics = CUSTOMER_LOGIN_RESULT, groupId = CONSUMER_CUSTOMER_LOGIN_RESULT)
+    @KafkaListener(topics = CUSTOMER_LOGIN_RESULT, groupId = CONSUMER_CUSTOMER_LOGIN_RESULT, containerFactory = "listenerContainerFactoryLoginTrackingResultEvent")
     public void consume(@Payload LoginTrackingResultEvent event) {
 
         repository.save(mapper.toEntity(event))
-                .flatMap(result -> producer.send(CUSTOMER_LOGIN_RESULT, result.getCustomerIp(), result))
+                .flatMap(result -> producer.send(LOGIN_TRACKING_RESULT, result.getCustomerId().toString(), result))
                 .doOnNext(e -> log.debug("SAVED: " + e))
                 .subscribe(); // save & publish only once
     }

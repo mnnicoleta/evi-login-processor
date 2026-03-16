@@ -10,10 +10,10 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface LoginTrackingResultMapper {
 
-    @Mapping(target = "requestResult", expression = "java(RequestResult.UNSUCCESSFUL)")
+    @Mapping(target = "requestResult", expression = "java(com.evi.login.processor.model.RequestResult.UNSUCCESSFUL)")
     LoginTrackingResultEvent toResult(CustomerLoginEvent customerLoginEvent);
 
     @Mapping(target = "loginResultId", ignore = true)
-        // DB generates this
+// DB generates this
     LoginTrackingResultEntity toEntity(LoginTrackingResultEvent loginTrackingResultEvent);
 }

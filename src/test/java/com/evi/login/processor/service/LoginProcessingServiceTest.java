@@ -2,7 +2,6 @@ package com.evi.login.processor.service;
 
 import com.evi.login.processor.model.LoginTrackingResultEvent;
 import com.evi.login.processor.model.RequestResult;
-import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -17,9 +16,11 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
-import static com.evi.login.processor.constants.KafkaConstants.LOGIN_TRACKING_RESULT;
+import static com.evi.login.processor.kafka.KafkaConstants.CUSTOMER_LOGIN_RESULT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
@@ -51,28 +52,28 @@ class LoginProcessingServiceTest {
     @Test
     void processLogin_withoutAuthorization_returnsUnsuccessful() {
         LoginTrackingResultEvent event = createEvent();
-        RecordHeaders headers = new RecordHeaders(); // no Authorization header
+        Map<String, Object> headers = new HashMap<>(); // no Authorization header
 
         when(producer.send(anyString(), anyString(), any())).thenReturn(Mono.empty());
 
-        Mono<LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
+        Mono<? extends LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
 
         // Subscribe with StepVerifier to ensure producer.send() executes
         StepVerifier.create(resultMono)
-                .assertNext(result -> assertEquals(RequestResult.UNSUCCESSFUL, result.requestResult()))
+                .assertNext(result -> assertEquals(RequestResult.UNSUCCESSFUL, result.getRequestResult()))
                 .verifyComplete();
 
         // Verify producer sent unsuccessful result
         ArgumentCaptor<LoginTrackingResultEvent> captor = ArgumentCaptor.forClass(LoginTrackingResultEvent.class);
-        verify(producer).send(eq(LOGIN_TRACKING_RESULT), eq(event.messageId().toString()), captor.capture());
-        assertEquals(RequestResult.UNSUCCESSFUL, captor.getValue().requestResult());
+        verify(producer).send(eq(CUSTOMER_LOGIN_RESULT), eq(event.getCustomerId().toString()), captor.capture());
+        assertEquals(RequestResult.UNSUCCESSFUL, captor.getValue().getRequestResult());
     }
 
     @Test
     void processLogin_withAuthorization_successfulWebClientCall() {
         LoginTrackingResultEvent event = createEvent();
-        RecordHeaders headers = new RecordHeaders();
-        headers.add("Authorization", "Basic dGVzdDp0ZXN0".getBytes());
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("Authorization", "Basic dGVzdDp0ZXN0".getBytes());
 
         // Mock WebClient fluent chain
         @SuppressWarnings({"rawtypes", "unchecked"})
@@ -82,28 +83,28 @@ class LoginProcessingServiceTest {
         ResponseSpec responseSpec = mock(ResponseSpec.class);
 
         when(webClient.get()).thenReturn(uriSpec);
-        when(uriSpec.uri("/trackLoging/{customerId}", event.customerId())).thenReturn(headersSpec);
+        when(uriSpec.uri("/trackLoging/{customerId}", event.getCustomerId())).thenReturn(headersSpec);
         when(headersSpec.header(HttpHeaders.AUTHORIZATION, "Basic dGVzdDp0ZXN0")).thenReturn(headersSpec);
         when(headersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(Mono.just(ResponseEntity.ok().build())); // simulate success
 
         when(producer.send(anyString(), anyString(), any())).thenReturn(Mono.empty());
 
-        Mono<LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
+        Mono<? extends LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
 
         // StepVerifier subscribes to the full reactive chain
         StepVerifier.create(resultMono)
-                .assertNext(result -> assertEquals(RequestResult.SUCCESSFUL, result.requestResult()))
+                .assertNext(result -> assertEquals(RequestResult.SUCCESSFUL, result.getRequestResult()))
                 .verifyComplete();
 
-        verify(producer).send(eq(LOGIN_TRACKING_RESULT), eq(event.messageId().toString()), any());
+        verify(producer).send(eq(CUSTOMER_LOGIN_RESULT), eq(event.getCustomerId().toString()), any());
     }
 
     @Test
     void processLogin_webClientError_returnsUnsuccessful() {
         LoginTrackingResultEvent event = createEvent();
-        RecordHeaders headers = new RecordHeaders();
-        headers.add("Authorization", "Basic dGVzdDp0ZXN0".getBytes());
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("Authorization", "Basic dGVzdDp0ZXN0".getBytes());
 
         // Mock WebClient fluent chain with error
         @SuppressWarnings({"rawtypes", "unchecked"})
@@ -113,19 +114,19 @@ class LoginProcessingServiceTest {
         ResponseSpec responseSpec = mock(ResponseSpec.class);
 
         when(webClient.get()).thenReturn(uriSpec);
-        when(uriSpec.uri("/trackLoging/{customerId}", event.customerId())).thenReturn(headersSpec);
+        when(uriSpec.uri("/trackLoging/{customerId}", event.getCustomerId())).thenReturn(headersSpec);
         when(headersSpec.header(HttpHeaders.AUTHORIZATION, "Basic dGVzdDp0ZXN0")).thenReturn(headersSpec);
         when(headersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(Mono.error(new RuntimeException("fail")));
 
         when(producer.send(anyString(), anyString(), any())).thenReturn(Mono.empty());
 
-        Mono<LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
+        Mono<? extends LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
 
         StepVerifier.create(resultMono)
-                .assertNext(result -> assertEquals(RequestResult.UNSUCCESSFUL, result.requestResult()))
+                .assertNext(result -> assertEquals(RequestResult.UNSUCCESSFUL, result.getRequestResult()))
                 .verifyComplete();
 
-        verify(producer).send(eq(LOGIN_TRACKING_RESULT), eq(event.messageId().toString()), any());
+        verify(producer).send(eq(CUSTOMER_LOGIN_RESULT), eq(event.getCustomerId().toString()), any());
     }
 }

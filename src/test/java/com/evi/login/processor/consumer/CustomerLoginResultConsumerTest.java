@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.util.UUID;
 
+import static com.evi.login.processor.kafka.KafkaConstants.LOGIN_TRACKING_RESULT;
 import static org.mockito.Mockito.*;
 
 class CustomerLoginResultConsumerTest {
@@ -35,18 +36,22 @@ class CustomerLoginResultConsumerTest {
     @Test
     void consume_savesAndPublishesEntity() {
         // Prepare test data
+        UUID messageId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
         LoginTrackingResultEvent event = new LoginTrackingResultEvent(
-                UUID.randomUUID(),
+                customerId,
                 "user1",
                 "web",
                 Instant.now(),
-                UUID.randomUUID(),
+                messageId,
                 "127.0.0.1",
                 RequestResult.SUCCESSFUL
         );
 
         LoginTrackingResultEntity entity = new LoginTrackingResultEntity();
         entity.setCustomerIp("127.0.0.1");
+        entity.setMessageId(messageId);
+        entity.setCustomerId(customerId);
 
         // Mock mapper and repository behavior
         when(mapper.toEntity(event)).thenReturn(entity);
@@ -59,6 +64,6 @@ class CustomerLoginResultConsumerTest {
         // Verify mapper, repository, and producer calls
         verify(mapper).toEntity(event);
         verify(repository).save(entity);
-        verify(producer).send("customer-login-result", entity.getCustomerIp(), entity);
+        verify(producer).send(LOGIN_TRACKING_RESULT, entity.getCustomerId().toString(), entity);
     }
 }

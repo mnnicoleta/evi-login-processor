@@ -1,17 +1,19 @@
 package com.evi.login.processor.consumer;
 
+import com.evi.login.processor.mapper.LoginTrackingResultMapper;
 import com.evi.login.processor.model.CustomerLoginEvent;
 import com.evi.login.processor.model.LoginTrackingResultEvent;
 import com.evi.login.processor.model.RequestResult;
-import com.evi.login.processor.mapper.LoginTrackingResultMapper;
 import com.evi.login.processor.service.LoginProcessingService;
-import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.kafka.support.Acknowledgment;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
@@ -26,6 +28,7 @@ class CustomerLoginConsumerTest {
     void setup() {
         mapper = Mockito.mock(LoginTrackingResultMapper.class);
         service = mock(LoginProcessingService.class);
+        Acknowledgment ack = mock(Acknowledgment.class);
         consumer = new CustomerLoginConsumer(service, mapper);
 
     }
@@ -42,15 +45,15 @@ class CustomerLoginConsumerTest {
                 "127.0.0.1"
         );
 
-        RecordHeaders headers = new RecordHeaders();
+        Map<String, Object> headers = new HashMap<>();
 
         LoginTrackingResultEvent mappedResult = new LoginTrackingResultEvent(
-                event.customerId(),
-                event.username(),
-                event.client(),
+                event.getCustomerId(),
+                event.getUsername(),
+                event.getClient(),
                 Instant.now(),
                 UUID.randomUUID(),
-                event.customerIp(),
+                event.getCustomerIp(),
                 RequestResult.SUCCESSFUL
         );
 

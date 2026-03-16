@@ -2,8 +2,6 @@ package com.evi.login.processor.service;
 
 import com.evi.login.processor.model.LoginTrackingResultEvent;
 import com.evi.login.processor.model.RequestResult;
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.Headers;
 import org.springframework.http.HttpHeaders;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Service;
@@ -13,8 +11,9 @@ import reactor.util.retry.Retry;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 
-import static com.evi.login.processor.constants.KafkaConstants.LOGIN_TRACKING_RESULT;
+import static com.evi.login.processor.kafka.KafkaConstants.CUSTOMER_LOGIN_RESULT;
 
 @Service
 public class LoginProcessingService {
@@ -28,67 +27,66 @@ public class LoginProcessingService {
         this.producer = producer;
     }
 
-    private static String extractAuthorization(Headers headers) {
-        Header authHeader = headers.lastHeader("Authorization");
+    private static String extractAuthorization(Map<String, Object> headers) {
+        byte[] authHeader = (byte[]) headers.get("Authorization");
         if (authHeader != null) {
-            return new String(authHeader.value(), StandardCharsets.UTF_8);
+            return new String(authHeader, StandardCharsets.UTF_8);
         } else {
             return null;
         }
-
     }
 
-    public Mono<LoginTrackingResultEvent> processLogin(LoginTrackingResultEvent event, Headers headers) {
+    public Mono<? extends LoginTrackingResultEvent> processLogin(LoginTrackingResultEvent event, Map<String, Object> headers) {
         String authorization = extractAuthorization(headers);
 
         // If authorization is missing, immediately return unsuccessful result
         if (authorization == null) {
             return ifNoAuthReturnUnsuccessfull(event);
         } else {
-            return webClient.get()
-                    .uri("/trackLoging/{customerId}", event.customerId())
+            return webClient.post()
+                    .uri("/trackLoging/{customerId}", event.getCustomerId())
                     .header(HttpHeaders.AUTHORIZATION, authorization)
                     .retrieve()
                     .toBodilessEntity()
                     .map(response ->
                             new LoginTrackingResultEvent(
-                                    event.customerId(),
-                                    event.username(),
-                                    event.client(),
-                                    event.timestamp(),
-                                    event.messageId(),
-                                    event.customerIp(),
+                                    event.getCustomerId(),
+                                    event.getUsername(),
+                                    event.getClient(),
+                                    event.getTimestamp(),
+                                    event.getMessageId(),
+                                    event.getCustomerIp(),
                                     RequestResult.SUCCESSFUL))
                     .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
                             .filter(ex -> true))
                     .onErrorResume(ex ->
                             Mono.just(new LoginTrackingResultEvent(
-                                    event.customerId(),
-                                    event.username(),
-                                    event.client(),
-                                    event.timestamp(),
-                                    event.messageId(),
-                                    event.customerIp(),
+                                    event.getCustomerId(),
+                                    event.getUsername(),
+                                    event.getClient(),
+                                    event.getTimestamp(),
+                                    event.getMessageId(),
+                                    event.getCustomerIp(),
                                     RequestResult.UNSUCCESSFUL)))
                     .flatMap(result ->
-                            producer.send(LOGIN_TRACKING_RESULT, event.messageId().toString(), result)
+                            producer.send(CUSTOMER_LOGIN_RESULT, event.getCustomerId().toString(), result)
                                     .thenReturn(result)); // correct propagation result
         }
     }
 
-    private Mono<LoginTrackingResultEvent> ifNoAuthReturnUnsuccessfull(LoginTrackingResultEvent event) {
+    private Mono<? extends LoginTrackingResultEvent> ifNoAuthReturnUnsuccessfull(LoginTrackingResultEvent event) {
 
         LoginTrackingResultEvent unsuccessfulResult = new LoginTrackingResultEvent(
-                event.customerId(),
-                event.username(),
-                event.client(),
-                event.timestamp(),
-                event.messageId(),
-                event.customerIp(),
+                event.getCustomerId(),
+                event.getUsername(),
+                event.getClient(),
+                event.getTimestamp(),
+                event.getMessageId(),
+                event.getCustomerIp(),
                 RequestResult.UNSUCCESSFUL);
 
-        // send to Kafka even if unsuccessful
-        return producer.send(LOGIN_TRACKING_RESULT, event.messageId().toString(), unsuccessfulResult)
+        // send to Kafka even if unsuccessful (customerId as key if order matters)
+        return producer.send(CUSTOMER_LOGIN_RESULT, event.getCustomerId().toString(), unsuccessfulResult)
                 .thenReturn(unsuccessfulResult);
     }
 

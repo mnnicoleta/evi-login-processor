@@ -135,7 +135,7 @@ login-tracking-result topic
 ## Testing
 
 * Integration tests use **Testcontainers Kafka** and **WireMock** for simulating REST calls.
-* Unit tests cover **service logic** with at least 90% code coverage.
+* Unit tests cover **service logic** with at least 90% code coverage (Jacoco reports).
 
 ---
 

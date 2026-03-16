@@ -1,4 +1,4 @@
-package com.evi.login.processor.constants;
+package com.evi.login.processor.kafka;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -8,10 +8,11 @@ public final class KafkaConstants {
 
     // Topics
     public static final String CUSTOMER_LOGIN = "customer-login";
+
     public static final String CUSTOMER_LOGIN_RESULT = "customer-login-result";
     public static final String LOGIN_TRACKING_RESULT = "login-tracking-result";
 
-    // Producers
+    // Producers + CUSTOMER_LOGIN
     public static final String LOGIN_TRACKING_RESULT_PRODUCER = "login-tracking-result-producer";
     public static final String LOGIN_TRACKING_RESULT_ENTITY_PRODUCER = "login-tracking-result-entity-producer";
 

@@ -1,21 +1,29 @@
 spring:
   application:
     name: evi-login-tracker
+
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: localhost:9092
+    admin:
+      # if using Spring Kafka to auto-create topics
+      properties:
+        # set retention in ms for topics created by Spring
+        retention.ms: 7776000000   # 90 days (for audit/other purposes)
     producer:
-      acks: all
+      acks: all   # in order to prevent data loss
       retries: 5
-      enable-idempotence: true
+      enable-idempotence: true # making sure producer publishing duplicates
       max-in-flight-requests-per-connection: 5
-      linger-ms: 10
-      batch-size: 32768
-      compression-type: snappy
+      linger-ms: 10               #
+      batch-size: 32768           #     performance fine-tuning
+      compression-type: snappy    # gzip/z4
     consumer:
       auto-offset-reset: earliest
       enable-auto-commit: false
+
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
+
   r2dbc:
     url: r2dbc:postgresql://postgres-db:5432/postgres
     username: postgres
@@ -29,6 +37,8 @@ spring:
       schema-locations: classpath:schema.sql
       data-locations: classpath:schema.sql
 
+customer-tracking:
+  base-url: https://customer-tracking-service/v1/api
 #    flyway:
 #      enabled: true           # optional DB migrations
 #      url: jdbc:postgresql://localhost:5432/login_db
