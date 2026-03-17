@@ -1,4 +1,4 @@
-package com.evi.login.processor;
+package com.evi.login.processor.util;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import org.springframework.boot.test.context.TestConfiguration;

@@ -14,6 +14,9 @@ import java.util.Map;
 import static com.evi.login.processor.kafka.KafkaConstants.CONSUMER_CUSTOMER_LOGIN;
 import static com.evi.login.processor.kafka.KafkaConstants.CUSTOMER_LOGIN;
 
+/**
+ * Reads from topic CUSTOMER_LOGIN, execute REST call and publish result
+ */
 @Slf4j
 @Component
 public class CustomerLoginConsumer {
@@ -27,6 +30,13 @@ public class CustomerLoginConsumer {
         this.mapper = mapper;
     }
 
+    /**
+     * Consumes CustomerLoginEvent and if exists, basic auth
+     *
+     * @param customerLoginEvent CustomerLoginEvent
+     * @param headers            headers
+     */
+//    @Transactional("kafkaTransactionManager")
     @KafkaListener(topics = CUSTOMER_LOGIN, groupId = CONSUMER_CUSTOMER_LOGIN, containerFactory = "listenerContainerFactoryCustomerLoginEvent")
     public void consume(@Payload CustomerLoginEvent customerLoginEvent, @Headers Map<String, Object> headers) {
         log.info("CustomerLoginEvent: " + customerLoginEvent.toString());

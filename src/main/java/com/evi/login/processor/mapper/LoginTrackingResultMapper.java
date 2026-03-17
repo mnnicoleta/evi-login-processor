@@ -5,8 +5,9 @@ import com.evi.login.processor.model.CustomerLoginEvent;
 import com.evi.login.processor.model.LoginTrackingResultEvent;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.springframework.context.annotation.Description;
 
-@SuppressWarnings("unused")
+@Description("Mapper between events")
 @Mapper(componentModel = "spring")
 public interface LoginTrackingResultMapper {
 
@@ -14,6 +15,5 @@ public interface LoginTrackingResultMapper {
     LoginTrackingResultEvent toResult(CustomerLoginEvent customerLoginEvent);
 
     @Mapping(target = "loginResultId", ignore = true)
-// DB generates this
     LoginTrackingResultEntity toEntity(LoginTrackingResultEvent loginTrackingResultEvent);
 }

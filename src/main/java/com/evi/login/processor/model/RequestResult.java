@@ -1,5 +1,11 @@
 package com.evi.login.processor.model;
 
+import lombok.Getter;
+
+/**
+ * Result of REST call
+ */
+@Getter
 public enum RequestResult {
 
     SUCCESSFUL("successful"),
@@ -9,10 +15,6 @@ public enum RequestResult {
 
     RequestResult(String value) {
         this.value = value;
-    }
-
-    public String getValue() {
-        return value;
     }
 
     @Override

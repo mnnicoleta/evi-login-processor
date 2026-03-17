@@ -6,7 +6,7 @@ The **evi-login-processor** is a Spring Boot reactive microservice designed to p
 real-time using **Apache Kafka** and **WebFlux**. The service ensures **exactly-once processing** for each login event,
 avoiding duplicate database saves or duplicate event publishing.
 
-Architecture diagram : [evi-login-tracker.excalidraw](./docs/evi-login-tracker.excalidraw)
+Architecture diagram : [evi-login-tracker.excalidraw](./docs/evi-login-tracker.v0.excalidraw)
 
 It handles the following workflow:
 

@@ -15,6 +15,9 @@ import java.util.Map;
 
 import static com.evi.login.processor.kafka.KafkaConstants.CUSTOMER_LOGIN_RESULT;
 
+/**
+ * LoginProcessingService logic: read events, perform rest calls and publish result further
+ */
 @Service
 public class LoginProcessingService {
 

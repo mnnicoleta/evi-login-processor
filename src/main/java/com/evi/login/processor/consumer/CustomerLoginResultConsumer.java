@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 
 import static com.evi.login.processor.kafka.KafkaConstants.*;
 
+/**
+ * Consumes LoginTrackingResultEvent, saves it into DB and publishes the result into next topic
+ */
 @Slf4j
 @Component
 public class CustomerLoginResultConsumer {
@@ -28,6 +31,7 @@ public class CustomerLoginResultConsumer {
         this.mapper = mapper;
     }
 
+    //    @Transactional("kafkaTransactionManager")
     @KafkaListener(topics = CUSTOMER_LOGIN_RESULT, groupId = CONSUMER_CUSTOMER_LOGIN_RESULT, containerFactory = "listenerContainerFactoryLoginTrackingResultEvent")
     public void consume(@Payload LoginTrackingResultEvent event) {
 

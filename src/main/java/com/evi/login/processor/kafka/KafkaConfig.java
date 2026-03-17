@@ -35,6 +35,7 @@ import static com.evi.login.processor.kafka.KafkaConstants.*;
 @Configuration
 public class KafkaConfig {
 
+    public static final String EVI_LOGIN_PROCESSOR_MODEL_PACKAGE = "com.evi.login.processor.model";
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
@@ -64,21 +65,21 @@ public class KafkaConfig {
     // -----------------------
     @Bean
     public ReactiveKafkaProducerTemplate<String, CustomerLoginEvent> customerLoginEventProducerTemplate() {
-        return createProducer(CUSTOMER_LOGIN, CustomerLoginEvent.class);
+        return createProducer(CUSTOMER_LOGIN);
     }
 
 
     @Bean
     public ReactiveKafkaProducerTemplate<String, LoginTrackingResultEvent> loginTrackingResultEventProducerTemplate() {
-        return createProducer(LOGIN_TRACKING_RESULT_PRODUCER, LoginTrackingResultEvent.class);
+        return createProducer(LOGIN_TRACKING_RESULT_PRODUCER);
     }
 
     @Bean
     public ReactiveKafkaProducerTemplate<String, LoginTrackingResultEntity> loginTrackingResultEntityProducerTemplate() {
-        return createProducer(LOGIN_TRACKING_RESULT_ENTITY_PRODUCER, LoginTrackingResultEntity.class);
+        return createProducer(LOGIN_TRACKING_RESULT_ENTITY_PRODUCER);
     }
 
-    private <T> ReactiveKafkaProducerTemplate<String, T> createProducer(String clientId, Class<T> valueClass) {
+    private <T> ReactiveKafkaProducerTemplate<String, T> createProducer(String clientId) {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.CLIENT_ID_CONFIG, clientId);
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -92,6 +93,7 @@ public class KafkaConfig {
         props.put(ProducerConfig.LINGER_MS_CONFIG, lingerMs);
         props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, compressionType);
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true); // optional if you don't send type headers
+//        props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "transaction-id");
 
         SenderOptions<String, T> senderOptions = SenderOptions.create(props);
         return new ReactiveKafkaProducerTemplate<>(senderOptions);
@@ -108,7 +110,7 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, CustomerLoginEvent.class);
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.evi.login.processor.model");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, EVI_LOGIN_PROCESSOR_MODEL_PACKAGE);
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true); // optional if you don't send type headers
 
         return new DefaultKafkaConsumerFactory<>(
@@ -142,7 +144,7 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.evi.login.processor.model.CustomerLoginEvent");
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.evi.login.processor.model");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, EVI_LOGIN_PROCESSOR_MODEL_PACKAGE);
         props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
 
         return ReceiverOptions.<String, CustomerLoginEvent>create(props)

@@ -1,16 +1,19 @@
 package com.evi.login.processor.util;
 
+import com.evi.login.processor.consumer.CustomerLoginConsumer;
+import com.evi.login.processor.consumer.CustomerLoginResultConsumer;
+import com.evi.login.processor.repository.LoginTrackingRepository;
+import com.evi.login.processor.service.LoginProcessingService;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
-import com.evi.login.processor.service.LoginProcessingService;
-import com.evi.login.processor.repository.LoginTrackingRepository;
-import com.evi.login.processor.consumer.CustomerLoginConsumer;
-import com.evi.login.processor.consumer.CustomerLoginResultConsumer;
+import org.springframework.web.reactive.function.client.WebClient;
 
+/**
+ * Mocked beans
+ */
 @TestConfiguration
 public class TestBeansConfig {
 

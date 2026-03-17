@@ -3,11 +3,12 @@ plugins {
     id 'org.springframework.boot' version '3.5.11'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
+    id 'idea'
 }
 
-group = 'com.evi-data-login-tracker'
+group = 'com.evi.login.processor'
 version = '0.0.1-SNAPSHOT'
-description = 'Evi data login tracker'
+description = 'Evi login processor'
 
 java {
     toolchain {
@@ -81,7 +82,7 @@ dependencies {
 }
 
 springBoot {
-    mainClass = 'com.evi.login.processor.EviLoginProcessorApplication'
+    mainClass = 'com.evi.login.processor.EviLoginTrackerApplication'
     buildInfo()
 }
 
@@ -98,23 +99,14 @@ test {
 }
 
 sourceSets {
-    test {
-        java {
-            srcDirs = ['src/test/java']
-        }
-        resources {
-            srcDirs = ['src/test/resources']
-        }
-    }
-
     integrationTest {
-        java.srcDir 'src/integrationTest/java'
-        resources.srcDir 'src/integrationTest/resources'
-
-        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
-        runtimeClasspath += output + compileClasspath
+        java.srcDir file("src/integrationTest/java")
+        resources.srcDir file("src/integrationTest/resources")
+        runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.test.runtimeClasspath
+        compileClasspath += sourceSets.main.compileClasspath + sourceSets.test.compileClasspath
     }
 }
+
 
 // code coverage
 jacoco {
@@ -144,4 +136,12 @@ tasks.register('integrationTest', Test) {
 
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
+
+    useJUnitPlatform()
+}
+
+idea {
+    module {
+        sourceSets.integrationTest.allSource.srcDirs.each { srcDir -> module.testSourceDirs += srcDir }
+    }
 }

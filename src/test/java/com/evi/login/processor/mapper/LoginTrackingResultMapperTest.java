@@ -25,7 +25,7 @@ class LoginTrackingResultMapperTest {
     }
 
     @Test
-    void toResult_shouldMapCustomerLoginEventToLoginTrackingResultEvent() {
+    void toResultShouldMapCustomerLoginEventToLoginTrackingResultEvent() {
         // Given: record DTO
         CustomerLoginEvent customerEvent = new CustomerLoginEvent(
                 UUID.randomUUID(),
@@ -53,7 +53,7 @@ class LoginTrackingResultMapperTest {
     }
 
     @Test
-    void toEntity_shouldMapLoginTrackingResultEventToEntityIgnoringLoginResultId() {
+    void toEntityShouldMapLoginTrackingResultEventToEntityIgnoringLoginResultId() {
         // Given: record DTO
         LoginTrackingResultEvent resultEvent = new LoginTrackingResultEvent(
                 UUID.randomUUID(),
@@ -82,7 +82,7 @@ class LoginTrackingResultMapperTest {
     }
 
     @Test
-    void toResult_shouldReturnNullWhenInputIsNull() {
+    void toResultShouldReturnNullWhenInputIsNull() {
         // When
         LoginTrackingResultEvent result = mapper.toResult(null);
 
@@ -91,7 +91,7 @@ class LoginTrackingResultMapperTest {
     }
 
     @Test
-    void toEntity_shouldReturnNullWhenInputIsNull() {
+    void toEntityShouldReturnNullWhenInputIsNull() {
         // When
         LoginTrackingResultEntity entity = mapper.toEntity(null);
 

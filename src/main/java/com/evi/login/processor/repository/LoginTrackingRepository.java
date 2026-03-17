@@ -8,5 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface LoginTrackingRepository extends R2dbcRepository<LoginTrackingResultEntity, UUID> {
-    //TODO blocking jdbs vs rd2bcs ?!
+
 }

@@ -9,7 +9,9 @@ import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
-
+/**
+ * EviLoginTrackerApplicationTest
+ */
 @Import({TestBeansConfig.class})
 @SpringBootTest(properties = {"spring.main.allow-bean-definition-overriding=true",
         "spring.kafka.consumer.auto-startup=false"})
@@ -17,12 +19,11 @@ import org.springframework.context.annotation.Import;
         R2dbcAutoConfiguration.class,
         KafkaAutoConfiguration.class,
         DataSourceAutoConfiguration.class})
-class EviLoginTrackerApplicationTests {
+class EviLoginTrackerApplicationTest {
 
     @Test
     void contextLoads() {
         // This will pass if the Spring context starts successfully
-        // All beans, including mocks, are wired correctly
     }
 
 }

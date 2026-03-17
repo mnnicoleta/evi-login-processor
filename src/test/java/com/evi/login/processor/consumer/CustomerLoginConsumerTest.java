@@ -8,7 +8,6 @@ import com.evi.login.processor.service.LoginProcessingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.kafka.support.Acknowledgment;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
@@ -28,9 +27,7 @@ class CustomerLoginConsumerTest {
     void setup() {
         mapper = Mockito.mock(LoginTrackingResultMapper.class);
         service = mock(LoginProcessingService.class);
-        Acknowledgment ack = mock(Acknowledgment.class);
         consumer = new CustomerLoginConsumer(service, mapper);
-
     }
 
     @Test

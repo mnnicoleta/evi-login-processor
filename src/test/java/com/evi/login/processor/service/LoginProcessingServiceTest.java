@@ -9,9 +9,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
-import org.springframework.web.reactive.function.client.WebClient.RequestHeadersUriSpec;
-import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -24,6 +21,9 @@ import static com.evi.login.processor.kafka.KafkaConstants.CUSTOMER_LOGIN_RESULT
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
+/**
+ * LoginProcessingServiceTest
+ */
 class LoginProcessingServiceTest {
 
     private WebClient webClient;
@@ -50,7 +50,7 @@ class LoginProcessingServiceTest {
     }
 
     @Test
-    void processLogin_withoutAuthorization_returnsUnsuccessful() {
+    void processLoginWithoutAuthorization_returnsUnsuccessful() {
         LoginTrackingResultEvent event = createEvent();
         Map<String, Object> headers = new HashMap<>(); // no Authorization header
 
@@ -60,7 +60,8 @@ class LoginProcessingServiceTest {
 
         // Subscribe with StepVerifier to ensure producer.send() executes
         StepVerifier.create(resultMono)
-                .assertNext(result -> assertEquals(RequestResult.UNSUCCESSFUL, result.getRequestResult()))
+                .assertNext(result ->
+                        assertEquals(RequestResult.UNSUCCESSFUL, result.getRequestResult()))
                 .verifyComplete();
 
         // Verify producer sent unsuccessful result
@@ -70,29 +71,30 @@ class LoginProcessingServiceTest {
     }
 
     @Test
-    void processLogin_withAuthorization_successfulWebClientCall() {
+    void processLoginEventWithAuthorizationSuccessfulWebClientCall() {
         LoginTrackingResultEvent event = createEvent();
         Map<String, Object> headers = new HashMap<>();
         headers.put("Authorization", "Basic dGVzdDp0ZXN0".getBytes());
 
-        // Mock WebClient fluent chain
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        RequestHeadersUriSpec uriSpec = mock(RequestHeadersUriSpec.class);
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        RequestHeadersSpec headersSpec = mock(RequestHeadersSpec.class);
-        ResponseSpec responseSpec = mock(ResponseSpec.class);
+        // Mock WebClient chain properly
+        WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
+        WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class);
+        WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
 
-        when(webClient.get()).thenReturn(uriSpec);
-        when(uriSpec.uri("/trackLoging/{customerId}", event.getCustomerId())).thenReturn(headersSpec);
-        when(headersSpec.header(HttpHeaders.AUTHORIZATION, "Basic dGVzdDp0ZXN0")).thenReturn(headersSpec);
-        when(headersSpec.retrieve()).thenReturn(responseSpec);
+        when(webClient.post()).thenReturn(uriSpec);
+        when(uriSpec.uri("/trackLoging/{customerId}", event.getCustomerId())).thenReturn(requestBodySpec);
+        when(requestBodySpec.header(HttpHeaders.AUTHORIZATION, "Basic dGVzdDp0ZXN0")).thenReturn(requestBodySpec);
+
+        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(Mono.just(ResponseEntity.ok().build())); // simulate success
 
+        // Mock producer
         when(producer.send(anyString(), anyString(), any())).thenReturn(Mono.empty());
 
+        // Act
         Mono<? extends LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
 
-        // StepVerifier subscribes to the full reactive chain
+        // Assert
         StepVerifier.create(resultMono)
                 .assertNext(result -> assertEquals(RequestResult.SUCCESSFUL, result.getRequestResult()))
                 .verifyComplete();
@@ -101,22 +103,21 @@ class LoginProcessingServiceTest {
     }
 
     @Test
-    void processLogin_webClientError_returnsUnsuccessful() {
+    void processLoginWebClientErrorReturnsUnsuccessful() {
         LoginTrackingResultEvent event = createEvent();
         Map<String, Object> headers = new HashMap<>();
         headers.put("Authorization", "Basic dGVzdDp0ZXN0".getBytes());
 
         // Mock WebClient fluent chain with error
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        RequestHeadersUriSpec uriSpec = mock(RequestHeadersUriSpec.class);
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        RequestHeadersSpec headersSpec = mock(RequestHeadersSpec.class);
-        ResponseSpec responseSpec = mock(ResponseSpec.class);
+        WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
+        WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class);
+        WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
 
-        when(webClient.get()).thenReturn(uriSpec);
-        when(uriSpec.uri("/trackLoging/{customerId}", event.getCustomerId())).thenReturn(headersSpec);
-        when(headersSpec.header(HttpHeaders.AUTHORIZATION, "Basic dGVzdDp0ZXN0")).thenReturn(headersSpec);
-        when(headersSpec.retrieve()).thenReturn(responseSpec);
+        when(webClient.post()).thenReturn(uriSpec);
+        when(uriSpec.uri("/trackLoging/{customerId}", event.getCustomerId())).thenReturn(requestBodySpec);
+        when(requestBodySpec.header(HttpHeaders.AUTHORIZATION, "Basic dGVzdDp0ZXN0")).thenReturn(requestBodySpec);
+
+        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(Mono.error(new RuntimeException("fail")));
 
         when(producer.send(anyString(), anyString(), any())).thenReturn(Mono.empty());
