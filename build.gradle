@@ -35,6 +35,7 @@ dependencies {
 
     // Kafka
     implementation 'org.springframework.kafka:spring-kafka'
+    // MISTAKE mix both blocking and non blocking approaches TODO: remove it
     implementation 'io.projectreactor.kafka:reactor-kafka'
 //    implementation 'org.apache.kafka:kafka-streams' //enables processing streams support
 

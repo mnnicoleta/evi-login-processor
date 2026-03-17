@@ -274,7 +274,6 @@ class CustomerLoginIT {
 
                     LoginTrackingResultEntity entity = list.getFirst();
                     assertEquals(RequestResult.UNSUCCESSFUL, entity.getRequestResult());
-                    assertEquals(RequestResult.SUCCESSFUL, entity.getRequestResult());
                     assertEquals(sampleEvent.getCustomerIp(), entity.getCustomerIp());
                     assertEquals(sampleEvent.getCustomerId(), entity.getCustomerId());
                     assertEquals(sampleEvent.getTimestamp(), entity.getTimestamp());

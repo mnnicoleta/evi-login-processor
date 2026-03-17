@@ -65,39 +65,76 @@ public class KafkaConfig {
     // -----------------------
     @Bean
     public ReactiveKafkaProducerTemplate<String, CustomerLoginEvent> customerLoginEventProducerTemplate() {
-        return createProducer(CUSTOMER_LOGIN);
+        return createProducer(CUSTOMER_LOGIN, CustomerLoginEvent.class);
     }
-
 
     @Bean
     public ReactiveKafkaProducerTemplate<String, LoginTrackingResultEvent> loginTrackingResultEventProducerTemplate() {
-        return createProducer(LOGIN_TRACKING_RESULT_PRODUCER);
+        return createProducer(LOGIN_TRACKING_RESULT_PRODUCER, LoginTrackingResultEvent.class);
     }
 
     @Bean
     public ReactiveKafkaProducerTemplate<String, LoginTrackingResultEntity> loginTrackingResultEntityProducerTemplate() {
-        return createProducer(LOGIN_TRACKING_RESULT_ENTITY_PRODUCER);
+        return createProducer(LOGIN_TRACKING_RESULT_ENTITY_PRODUCER, LoginTrackingResultEntity.class);
     }
 
-    private <T> ReactiveKafkaProducerTemplate<String, T> createProducer(String clientId) {
+    private <T> ReactiveKafkaProducerTemplate<String, T> createProducer(String clientId, Class<T> valueClass) {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.CLIENT_ID_CONFIG, clientId);
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        props.put(ProducerConfig.ACKS_CONFIG, acks);
+
+        //Reliability
+        props.put(ProducerConfig.ACKS_CONFIG, acks); //wait for all replicas
         props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, idempotence);
-        props.put(ProducerConfig.RETRIES_CONFIG, retries);
+        props.put(ProducerConfig.RETRIES_CONFIG, retries); // exactly-once delivery
+
         props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, maxInFlight);
+        // tuning
         props.put(ProducerConfig.BATCH_SIZE_CONFIG, batchSize);
         props.put(ProducerConfig.LINGER_MS_CONFIG, lingerMs);
         props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, compressionType);
+
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true); // optional if you don't send type headers
-//        props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "transaction-id");
+
+//        props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "transaction-id" + valueClass); // avoiding zombies (best practice?)
 
         SenderOptions<String, T> senderOptions = SenderOptions.create(props);
         return new ReactiveKafkaProducerTemplate<>(senderOptions);
     }
+
+    @Bean
+    public ReceiverOptions<String, CustomerLoginEvent> customerLoginReceiverOptions() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_CUSTOMER_LOGIN);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.evi.login.processor.model.CustomerLoginEvent");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, EVI_LOGIN_PROCESSOR_MODEL_PACKAGE);
+        props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
+
+        return ReceiverOptions.<String, CustomerLoginEvent>create(props)
+                .subscription(Collections.singleton(CUSTOMER_LOGIN));
+    }
+
+    @Bean
+    public ReceiverOptions<String, LoginTrackingResultEvent> customerLoginResultReceiverOptions() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_CUSTOMER_LOGIN_RESULT); // separate group!
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, LoginTrackingResultEvent.class);
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, EVI_LOGIN_PROCESSOR_MODEL_PACKAGE);
+        props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
+
+        return ReceiverOptions.<String, LoginTrackingResultEvent>create(props)
+                .subscription(Collections.singleton(CUSTOMER_LOGIN_RESULT));
+    }
+
+    //non-reactive consumers !!! TODO: remove above beans and adjust logic to use receivers
 
     // -----------------------
     // Consumer Factory for CustomerLoginEvent
@@ -133,24 +170,6 @@ public class KafkaConfig {
         return factory;
     }
 
-    // -----------------------
-    // Reactive ReceiverOptions for CustomerLoginEvent
-    // -----------------------
-    @Bean
-    public ReceiverOptions<String, CustomerLoginEvent> customerLoginReceiverOptions() {
-        Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_CUSTOMER_LOGIN);
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.evi.login.processor.model.CustomerLoginEvent");
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, EVI_LOGIN_PROCESSOR_MODEL_PACKAGE);
-        props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
-
-        return ReceiverOptions.<String, CustomerLoginEvent>create(props)
-                .subscription(Collections.singleton(CUSTOMER_LOGIN));
-    }
-
     @Bean
     public ConsumerFactory<String, LoginTrackingResultEvent> consumerLoginTrackingResultEventFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -159,7 +178,7 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, LoginTrackingResultEvent.class);
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.evi.login.processor.model");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, EVI_LOGIN_PROCESSOR_MODEL_PACKAGE);
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true); // optional if you don't send type headers
 
         return new DefaultKafkaConsumerFactory<>(
@@ -167,24 +186,6 @@ public class KafkaConfig {
                 new StringDeserializer(),
                 new JsonDeserializer<>(LoginTrackingResultEvent.class)
         );
-    }
-
-    // -----------------------
-    // Reactive ReceiverOptions for LoginTrackingResultEvent
-    // -----------------------
-    @Bean
-    public ReceiverOptions<String, LoginTrackingResultEvent> customerLoginResultReceiverOptions() {
-        Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_CUSTOMER_LOGIN_RESULT); // separate group!
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.evi.login.processor.model.LoginTrackingResultEvent");
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.evi.login.processor.model");
-        props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
-
-        return ReceiverOptions.<String, LoginTrackingResultEvent>create(props)
-                .subscription(Collections.singleton(CUSTOMER_LOGIN_RESULT));
     }
 
     @Bean

@@ -39,5 +39,6 @@ public class CustomerLoginResultConsumer {
                 .flatMap(result -> producer.send(LOGIN_TRACKING_RESULT, result.getCustomerId().toString(), result))
                 .doOnNext(e -> log.debug("SAVED: " + e))
                 .subscribe(); // save & publish only once
+        //ack.acknowledge(); //safest for async side effect
     }
 }

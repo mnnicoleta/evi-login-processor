@@ -36,7 +36,7 @@ public class CustomerLoginConsumer {
      * @param customerLoginEvent CustomerLoginEvent
      * @param headers            headers
      */
-//    @Transactional("kafkaTransactionManager")
+//    @Transactional("kafkaTransactionManager") for sprink kafka
     @KafkaListener(topics = CUSTOMER_LOGIN, groupId = CONSUMER_CUSTOMER_LOGIN, containerFactory = "listenerContainerFactoryCustomerLoginEvent")
     public void consume(@Payload CustomerLoginEvent customerLoginEvent, @Headers Map<String, Object> headers) {
         log.info("CustomerLoginEvent: " + customerLoginEvent.toString());
