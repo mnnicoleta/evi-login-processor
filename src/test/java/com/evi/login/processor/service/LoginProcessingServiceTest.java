@@ -2,39 +2,40 @@ package com.evi.login.processor.service;
 
 import com.evi.login.processor.model.LoginTrackingResultEvent;
 import com.evi.login.processor.model.RequestResult;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.kafka.sender.KafkaSender;
+import reactor.kafka.sender.SenderRecord;
 import reactor.test.StepVerifier;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
-import static com.evi.login.processor.kafka.KafkaConstants.CUSTOMER_LOGIN_RESULT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
-/**
- * LoginProcessingServiceTest
- */
 class LoginProcessingServiceTest {
 
+    public static final String BASIC_AUTHENTICATION = "Basic authentication";
+    public static final String TRACK_LOGING_CUSTOMER_ID_PATH = "/trackLoging/{customerId}";
     private WebClient webClient;
-    private ReactiveKafkaProducerTemplate<String, LoginTrackingResultEvent> producer;
+    private KafkaSender<String, LoginTrackingResultEvent> sender;
     private LoginProcessingService service;
 
     @BeforeEach
     void setup() {
         webClient = mock(WebClient.class);
-        producer = mock(ReactiveKafkaProducerTemplate.class);
-        service = new LoginProcessingService(webClient, producer);
+        sender = mock(KafkaSender.class);
+        service = new LoginProcessingService(webClient, sender);
     }
 
     private LoginTrackingResultEvent createEvent() {
@@ -50,84 +51,83 @@ class LoginProcessingServiceTest {
     }
 
     @Test
-    void processLoginWithoutAuthorization_returnsUnsuccessful() {
+    void processLoginWithoutAuthorizationReturnsUnsuccessful() {
         LoginTrackingResultEvent event = createEvent();
-        Map<String, Object> headers = new HashMap<>(); // no Authorization header
+        Headers headers = mock(Headers.class); // no Authorization
 
-        when(producer.send(anyString(), anyString(), any())).thenReturn(Mono.empty());
+        // Mock KafkaSender.send() to return empty Flux
+        when(sender.send(any())).thenReturn(Flux.empty());
 
-        Mono<? extends LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
+        Mono<LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
 
-        // Subscribe with StepVerifier to ensure producer.send() executes
         StepVerifier.create(resultMono)
-                .assertNext(result ->
-                        assertEquals(RequestResult.UNSUCCESSFUL, result.getRequestResult()))
+                .assertNext(result -> assertEquals(RequestResult.UNSUCCESSFUL, result.requestResult()))
                 .verifyComplete();
 
-        // Verify producer sent unsuccessful result
-        ArgumentCaptor<LoginTrackingResultEvent> captor = ArgumentCaptor.forClass(LoginTrackingResultEvent.class);
-        verify(producer).send(eq(CUSTOMER_LOGIN_RESULT), eq(event.getCustomerId().toString()), captor.capture());
-        assertEquals(RequestResult.UNSUCCESSFUL, captor.getValue().getRequestResult());
+        // Verify the KafkaSender was called with the correct event
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Mono<SenderRecord<String, LoginTrackingResultEvent, String>>> captor =
+                ArgumentCaptor.forClass(Mono.class);
+        verify(sender).send(captor.capture());
+
+        SenderRecord<String, LoginTrackingResultEvent, String> sentRecord = captor.getValue().block();
+        assertEquals(RequestResult.UNSUCCESSFUL, sentRecord.value().requestResult());
+        assertEquals(event.customerId(), sentRecord.value().customerId());
     }
 
     @Test
-    void processLoginEventWithAuthorizationSuccessfulWebClientCall() {
+    void processLoginWithAuthorizationSuccessfulWebClientCall() {
         LoginTrackingResultEvent event = createEvent();
-        Map<String, Object> headers = new HashMap<>();
-        headers.put("Authorization", "Basic dGVzdDp0ZXN0".getBytes());
+        Headers headers = new RecordHeaders()
+                .add(new RecordHeader("Authorization", BASIC_AUTHENTICATION.getBytes()));
 
-        // Mock WebClient chain properly
-        WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
+        // Mock WebClient
         WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class);
+        WebClient.RequestBodySpec bodySpec = mock(WebClient.RequestBodySpec.class);
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
 
         when(webClient.post()).thenReturn(uriSpec);
-        when(uriSpec.uri("/trackLoging/{customerId}", event.getCustomerId())).thenReturn(requestBodySpec);
-        when(requestBodySpec.header(HttpHeaders.AUTHORIZATION, "Basic dGVzdDp0ZXN0")).thenReturn(requestBodySpec);
+        when(uriSpec.uri(TRACK_LOGING_CUSTOMER_ID_PATH, event.customerId())).thenReturn(bodySpec);
+        when(bodySpec.header(HttpHeaders.AUTHORIZATION, BASIC_AUTHENTICATION)).thenReturn(bodySpec);
+        when(bodySpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.toBodilessEntity()).thenReturn(Mono.just(ResponseEntity.ok().build()));
 
-        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.toBodilessEntity()).thenReturn(Mono.just(ResponseEntity.ok().build())); // simulate success
+        when(sender.send(any())).thenReturn(Flux.empty());
 
-        // Mock producer
-        when(producer.send(anyString(), anyString(), any())).thenReturn(Mono.empty());
+        Mono<LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
 
-        // Act
-        Mono<? extends LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
-
-        // Assert
         StepVerifier.create(resultMono)
-                .assertNext(result -> assertEquals(RequestResult.SUCCESSFUL, result.getRequestResult()))
+                .assertNext(result -> assertEquals(RequestResult.SUCCESSFUL, result.requestResult()))
                 .verifyComplete();
 
-        verify(producer).send(eq(CUSTOMER_LOGIN_RESULT), eq(event.getCustomerId().toString()), any());
+        verify(sender).send(any());
     }
 
     @Test
     void processLoginWebClientErrorReturnsUnsuccessful() {
         LoginTrackingResultEvent event = createEvent();
-        Map<String, Object> headers = new HashMap<>();
-        headers.put("Authorization", "Basic dGVzdDp0ZXN0".getBytes());
+        Headers headers = new RecordHeaders()
+                .add(new RecordHeader("Authorization", BASIC_AUTHENTICATION.getBytes()));
 
-        // Mock WebClient fluent chain with error
-        WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
+        // Mock WebClient
         WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class);
+        WebClient.RequestBodySpec bodySpec = mock(WebClient.RequestBodySpec.class);
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
 
         when(webClient.post()).thenReturn(uriSpec);
-        when(uriSpec.uri("/trackLoging/{customerId}", event.getCustomerId())).thenReturn(requestBodySpec);
-        when(requestBodySpec.header(HttpHeaders.AUTHORIZATION, "Basic dGVzdDp0ZXN0")).thenReturn(requestBodySpec);
-
-        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
+        when(uriSpec.uri(TRACK_LOGING_CUSTOMER_ID_PATH, event.customerId())).thenReturn(bodySpec);
+        when(bodySpec.header(HttpHeaders.AUTHORIZATION, BASIC_AUTHENTICATION)).thenReturn(bodySpec);
+        when(bodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(Mono.error(new RuntimeException("fail")));
 
-        when(producer.send(anyString(), anyString(), any())).thenReturn(Mono.empty());
+        when(sender.send(any())).thenReturn(Flux.empty());
 
-        Mono<? extends LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
+        Mono<LoginTrackingResultEvent> resultMono = service.processLogin(event, headers);
 
         StepVerifier.create(resultMono)
-                .assertNext(result -> assertEquals(RequestResult.UNSUCCESSFUL, result.getRequestResult()))
+                .assertNext(result -> assertEquals(RequestResult.UNSUCCESSFUL, result.requestResult()))
                 .verifyComplete();
 
-        verify(producer).send(eq(CUSTOMER_LOGIN_RESULT), eq(event.getCustomerId().toString()), any());
+        verify(sender).send(any());
     }
 }

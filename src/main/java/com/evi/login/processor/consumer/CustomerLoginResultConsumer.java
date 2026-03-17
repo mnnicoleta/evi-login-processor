@@ -4,41 +4,83 @@ import com.evi.login.processor.entity.LoginTrackingResultEntity;
 import com.evi.login.processor.mapper.LoginTrackingResultMapper;
 import com.evi.login.processor.model.LoginTrackingResultEvent;
 import com.evi.login.processor.repository.LoginTrackingRepository;
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
-import org.springframework.messaging.handler.annotation.Payload;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.stereotype.Component;
+import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
+import reactor.kafka.receiver.KafkaReceiver;
+import reactor.kafka.sender.KafkaSender;
+import reactor.kafka.sender.SenderRecord;
 
-import static com.evi.login.processor.kafka.KafkaConstants.*;
+import static com.evi.login.processor.kafka.KafkaConstants.LOGIN_TRACKING_RESULT;
 
 /**
- * Consumes LoginTrackingResultEvent, saves it into DB and publishes the result into next topic
+ * Fully reactive consumer: consumes LoginTrackingResultEvent, saves into DB, publishes result to next topic.
  */
 @Slf4j
 @Component
 public class CustomerLoginResultConsumer {
 
     private final LoginTrackingRepository repository;
-    private final ReactiveKafkaProducerTemplate<String, LoginTrackingResultEntity> producer;
+    private final KafkaSender<String, LoginTrackingResultEntity> loginTrackingResultEntitySender;
     private final LoginTrackingResultMapper mapper;
+    private final KafkaReceiver<String, LoginTrackingResultEvent> kafkaReceiver;
+
+    @Getter
+    private Disposable subscription;
 
     public CustomerLoginResultConsumer(LoginTrackingRepository repository,
-                                       ReactiveKafkaProducerTemplate<String, LoginTrackingResultEntity> producer,
-                                       LoginTrackingResultMapper mapper) {
+                                       KafkaSender<String, LoginTrackingResultEntity> loginTrackingResultEntitySender,
+                                       LoginTrackingResultMapper mapper,
+                                       KafkaReceiver<String, LoginTrackingResultEvent> kafkaReceiver) {
         this.repository = repository;
-        this.producer = producer;
+        this.loginTrackingResultEntitySender = loginTrackingResultEntitySender;
         this.mapper = mapper;
+        this.kafkaReceiver = kafkaReceiver;
+
     }
 
-    //    @Transactional("kafkaTransactionManager")
-    @KafkaListener(topics = CUSTOMER_LOGIN_RESULT, groupId = CONSUMER_CUSTOMER_LOGIN_RESULT, containerFactory = "listenerContainerFactoryLoginTrackingResultEvent")
-    public void consume(@Payload LoginTrackingResultEvent event) {
+    // Called by Spring after all dependencies are injected
+    @PostConstruct
+    public void init() {
+        startConsuming();
+    }
 
-        repository.save(mapper.toEntity(event))
-                .flatMap(result -> producer.send(LOGIN_TRACKING_RESULT, result.getCustomerId().toString(), result))
-                .doOnNext(e -> log.debug("SAVED: " + e))
-                .subscribe(); // save & publish only once
-        //ack.acknowledge(); //safest for async side effect
+    private void startConsuming() {
+        this.subscription = kafkaReceiver
+                .receive()
+                .flatMap(receivedRecord -> processEvent(receivedRecord.value())
+                        .then(Mono.fromRunnable(receivedRecord.receiverOffset()::acknowledge))
+                        .retry(3) // retry failed events
+                )
+                .subscribe(
+                        null,
+                        err -> log.error("Reactive Kafka stream failed", err),
+                        () -> log.info("Reactive Kafka stream completed")
+                );
+    }
+
+    /**
+     * Public method to process a single LoginTrackingResultEvent.
+     * This is directly testable in unit tests without Kafka.
+     */
+    public Mono<Void> processEvent(LoginTrackingResultEvent event) {
+        return repository.save(mapper.toEntity(event))
+                .flatMap(entity -> {
+                    SenderRecord<String, LoginTrackingResultEntity, String> senderRecord =
+                            SenderRecord.create(
+                                    new ProducerRecord<>(LOGIN_TRACKING_RESULT, entity.getCustomerId().toString(), entity),
+                                    entity.getCustomerId().toString()
+                            );
+
+                    return loginTrackingResultEntitySender.send(Mono.just(senderRecord))
+                            .then();
+                })
+                .doOnSuccess(v -> log.debug("Processed and saved: {}", event))
+                .doOnError(err -> log.error("Failed to process event: {}", event, err))
+                .then();
     }
 }

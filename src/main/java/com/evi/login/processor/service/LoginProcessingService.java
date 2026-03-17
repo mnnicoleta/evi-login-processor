@@ -2,95 +2,116 @@ package com.evi.login.processor.service;
 
 import com.evi.login.processor.model.LoginTrackingResultEvent;
 import com.evi.login.processor.model.RequestResult;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Headers;
 import org.springframework.http.HttpHeaders;
-import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.kafka.sender.KafkaSender;
+import reactor.kafka.sender.SenderRecord;
 import reactor.util.retry.Retry;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Map;
 
 import static com.evi.login.processor.kafka.KafkaConstants.CUSTOMER_LOGIN_RESULT;
+import static com.evi.login.processor.util.Utils.extractHeader;
+
 
 /**
- * LoginProcessingService logic: read events, perform rest calls and publish result further
+ * LoginProcessingService logic: read events, perform REST calls and publish results further
  */
 @Service
 public class LoginProcessingService {
 
     private final WebClient webClient;
-    private final ReactiveKafkaProducerTemplate<String, LoginTrackingResultEvent> producer;
+    private final KafkaSender<String, LoginTrackingResultEvent> loginTrackingResultEventSender;
 
     public LoginProcessingService(WebClient webClient,
-                                  ReactiveKafkaProducerTemplate<String, LoginTrackingResultEvent> producer) {
+                                  KafkaSender<String, LoginTrackingResultEvent> loginTrackingResultEventSender) {
         this.webClient = webClient;
-        this.producer = producer;
+        this.loginTrackingResultEventSender = loginTrackingResultEventSender;
     }
 
-    private static String extractAuthorization(Map<String, Object> headers) {
-        byte[] authHeader = (byte[]) headers.get("Authorization");
-        if (authHeader != null) {
-            return new String(authHeader, StandardCharsets.UTF_8);
-        } else {
-            return null;
-        }
-    }
+    /**
+     * Process a login event reactively, using Authorization header from Kafka headers.
+     * Handles REST call, retry, error fallback, and publishes result to Kafka.
+     *
+     * @param event   the event to process
+     * @param headers Kafka headers from the incoming record
+     * @return Mono emitting processed LoginTrackingResultEvent
+     */
+    public Mono<LoginTrackingResultEvent> processLogin(LoginTrackingResultEvent event, Headers headers) {
+        String authorization = extractHeader(headers, "Authorization");
 
-    public Mono<? extends LoginTrackingResultEvent> processLogin(LoginTrackingResultEvent event, Map<String, Object> headers) {
-        String authorization = extractAuthorization(headers);
-
-        // If authorization is missing, immediately return unsuccessful result
         if (authorization == null) {
-            return ifNoAuthReturnUnsuccessfull(event);
-        } else {
-            return webClient.post()
-                    .uri("/trackLoging/{customerId}", event.getCustomerId())
-                    .header(HttpHeaders.AUTHORIZATION, authorization)
-                    .retrieve()
-                    .toBodilessEntity()
-                    .map(response ->
-                            new LoginTrackingResultEvent(
-                                    event.getCustomerId(),
-                                    event.getUsername(),
-                                    event.getClient(),
-                                    event.getTimestamp(),
-                                    event.getMessageId(),
-                                    event.getCustomerIp(),
-                                    RequestResult.SUCCESSFUL))
-                    .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
-                            .filter(ex -> true))
-                    .onErrorResume(ex ->
-                            Mono.just(new LoginTrackingResultEvent(
-                                    event.getCustomerId(),
-                                    event.getUsername(),
-                                    event.getClient(),
-                                    event.getTimestamp(),
-                                    event.getMessageId(),
-                                    event.getCustomerIp(),
-                                    RequestResult.UNSUCCESSFUL)))
-                    .flatMap(result ->
-                            producer.send(CUSTOMER_LOGIN_RESULT, event.getCustomerId().toString(), result)
-                                    .thenReturn(result)); // correct propagation result
+            return sendUnsuccessful(event);
         }
+
+        return webClient.post()
+                .uri("/trackLoging/{customerId}", event.customerId())
+                .header(HttpHeaders.AUTHORIZATION, authorization)
+                .retrieve()
+                .toBodilessEntity()
+                .map(response -> new LoginTrackingResultEvent(
+                        event.customerId(),
+                        event.username(),
+                        event.client(),
+                        event.timestamp(),
+                        event.messageId(),
+                        event.customerIp(),
+                        RequestResult.SUCCESSFUL
+                ))
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(2)))
+                .onErrorResume(ex -> Mono.just(new LoginTrackingResultEvent(
+                        event.customerId(),
+                        event.username(),
+                        event.client(),
+                        event.timestamp(),
+                        event.messageId(),
+                        event.customerIp(),
+                        RequestResult.UNSUCCESSFUL
+                )))
+                .flatMap(result -> {
+                    // create a Kafka record
+                    ProducerRecord<String, LoginTrackingResultEvent> producerRecord =
+                            new ProducerRecord<>(CUSTOMER_LOGIN_RESULT, event.customerId().toString(), result);
+
+                    // wrap in SenderRecord for KafkaSender
+                    SenderRecord<String, LoginTrackingResultEvent, String> senderRecord =
+                            SenderRecord.create(producerRecord, event.customerId().toString());
+
+                    // send reactive stream
+                    return loginTrackingResultEventSender
+                            .send(Mono.just(senderRecord))   // Flux<SenderResult<String>>
+                            .then(Mono.just(result));        // convert to Mono<LoginTrackingResultEvent>
+                });
     }
 
-    private Mono<? extends LoginTrackingResultEvent> ifNoAuthReturnUnsuccessfull(LoginTrackingResultEvent event) {
+
+    private Mono<LoginTrackingResultEvent> sendUnsuccessful(LoginTrackingResultEvent event) {
 
         LoginTrackingResultEvent unsuccessfulResult = new LoginTrackingResultEvent(
-                event.getCustomerId(),
-                event.getUsername(),
-                event.getClient(),
-                event.getTimestamp(),
-                event.getMessageId(),
-                event.getCustomerIp(),
+                event.customerId(),
+                event.username(),
+                event.client(),
+                event.timestamp(),
+                event.messageId(),
+                event.customerIp(),
                 RequestResult.UNSUCCESSFUL);
 
-        // send to Kafka even if unsuccessful (customerId as key if order matters)
-        return producer.send(CUSTOMER_LOGIN_RESULT, event.getCustomerId().toString(), unsuccessfulResult)
-                .thenReturn(unsuccessfulResult);
+        // create a Kafka record
+        ProducerRecord<String, LoginTrackingResultEvent> producerRecord =
+                new ProducerRecord<>(CUSTOMER_LOGIN_RESULT, event.customerId().toString(), unsuccessfulResult);
+
+        // wrap in SenderRecord for KafkaSender
+        SenderRecord<String, LoginTrackingResultEvent, String> senderRecord =
+                SenderRecord.create(producerRecord, event.customerId().toString());
+
+        // send reactive stream
+        return loginTrackingResultEventSender
+                .send(Mono.just(senderRecord))
+                .then(Mono.just(unsuccessfulResult));
     }
 
 }

@@ -8,11 +8,11 @@ import com.evi.login.processor.service.LoginProcessingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.kafka.receiver.KafkaReceiver;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
@@ -22,17 +22,21 @@ class CustomerLoginConsumerTest {
     private LoginProcessingService service;
     private CustomerLoginConsumer consumer;
     private LoginTrackingResultMapper mapper;
+    private KafkaReceiver<String, CustomerLoginEvent> kafkaReceiverCustomerLoginEvent;
 
     @BeforeEach
     void setup() {
         mapper = Mockito.mock(LoginTrackingResultMapper.class);
         service = mock(LoginProcessingService.class);
-        consumer = new CustomerLoginConsumer(service, mapper);
+        kafkaReceiverCustomerLoginEvent = mock(KafkaReceiver.class);
+
+        when(kafkaReceiverCustomerLoginEvent.receive()).thenReturn(Flux.empty());
+
+        consumer = new CustomerLoginConsumer(service, mapper, kafkaReceiverCustomerLoginEvent);
     }
 
     @Test
-    void consume_callsServiceWithMappedEvent() {
-        // Prepare test data
+    void processEventCallsServiceWithMappedEvent() {
         CustomerLoginEvent event = new CustomerLoginEvent(
                 UUID.randomUUID(),
                 "user1",
@@ -42,15 +46,15 @@ class CustomerLoginConsumerTest {
                 "127.0.0.1"
         );
 
-        Map<String, Object> headers = new HashMap<>();
+        org.apache.kafka.common.header.Headers headers = mock(org.apache.kafka.common.header.Headers.class);
 
         LoginTrackingResultEvent mappedResult = new LoginTrackingResultEvent(
-                event.getCustomerId(),
-                event.getUsername(),
-                event.getClient(),
+                event.customerId(),
+                event.username(),
+                event.client(),
                 Instant.now(),
                 UUID.randomUUID(),
-                event.getCustomerIp(),
+                event.customerIp(),
                 RequestResult.SUCCESSFUL
         );
 
@@ -58,10 +62,9 @@ class CustomerLoginConsumerTest {
         when(mapper.toResult(event)).thenReturn(mappedResult);
         when(service.processLogin(mappedResult, headers)).thenReturn(Mono.empty());
 
-        // Call the consumer
-        consumer.consume(event, headers);
+        // Call the new processEvent method
+        consumer.processEvent(event, headers).block(); // block() is fine in unit test
 
-        // Verify service is called with mapped event
         verify(service, times(1)).processLogin(mappedResult, headers);
     }
 }

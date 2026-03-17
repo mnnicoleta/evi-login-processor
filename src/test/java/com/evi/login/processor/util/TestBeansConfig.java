@@ -8,8 +8,8 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.kafka.sender.KafkaSender;
 
 /**
  * Mocked beans
@@ -25,8 +25,8 @@ public class TestBeansConfig {
 
     @Bean
     @Primary
-    public ReactiveKafkaProducerTemplate<String, Object> producer() {
-        return Mockito.mock(ReactiveKafkaProducerTemplate.class);
+    public KafkaSender<String, Object> producer() {
+        return Mockito.mock(KafkaSender.class);
     }
 
     @Bean

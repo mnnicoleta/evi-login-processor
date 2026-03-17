@@ -16,11 +16,21 @@ java {
     }
 }
 
+// ------------------ SOURCE SETS ------------------
+sourceSets {
+    integrationTest {
+        java.srcDir file("src/integrationTest/java")
+        resources.srcDir file("src/integrationTest/resources")
+        compileClasspath += sourceSets.main.compileClasspath + sourceSets.test.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.test.runtimeClasspath
+    }
+}
+
+// ------------------ DEPENDENCIES ------------------
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
-
     integrationTestImplementation.extendsFrom testImplementation
     integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
@@ -34,21 +44,17 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     // Kafka
-    implementation 'org.springframework.kafka:spring-kafka'
-    // MISTAKE mix both blocking and non blocking approaches TODO: remove it
     implementation 'io.projectreactor.kafka:reactor-kafka'
-//    implementation 'org.apache.kafka:kafka-streams' //enables processing streams support
+    implementation 'org.springframework.kafka:spring-kafka'
 
     // JPA + DB
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
-    // Spring Data R2DBC (Reactive database access)
+    // R2DBC
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
-
-    // R2DBC PostgreSQL driver
     implementation 'org.postgresql:r2dbc-postgresql'
 
-    // JSON support
+    // JSON
     implementation 'org.springframework.boot:spring-boot-starter-json'
 
     // MapStruct
@@ -60,7 +66,7 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // Testing
+    // Unit Test
     testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
@@ -68,20 +74,17 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:kafka'
     testImplementation 'org.testcontainers:postgresql'
-
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
     testImplementation 'org.mockito:mockito-core:5.7.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.17.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
+    // Integration Test
     integrationTestImplementation 'org.testcontainers:junit-jupiter'
     integrationTestImplementation 'org.wiremock.integrations:wiremock-spring-boot:4.2.1'
-
-
-    // Integration test dependencies
     integrationTestImplementation sourceSets.test.output
 }
 
+// ------------------ SPRING BOOT ------------------
 springBoot {
     mainClass = 'com.evi.login.processor.EviLoginTrackerApplication'
     buildInfo()
@@ -91,30 +94,74 @@ tasks.named('bootJar') {
     archiveFileName = "${project.name}-${project.version}.jar"
 }
 
+// ------------------ TEST CONFIG ------------------
 tasks.withType(Test) {
     useJUnitPlatform()
 }
 
-test {
-    useJUnitPlatform()
-}
+// ------------------ INTEGRATION TEST TASK ------------------
+tasks.register('integrationTest', Test) {
+    description = "Runs integration tests (only for JaCoCo, not part of build)"
+    group = "verification"
 
-sourceSets {
-    integrationTest {
-        java.srcDir file("src/integrationTest/java")
-        resources.srcDir file("src/integrationTest/resources")
-        runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.test.runtimeClasspath
-        compileClasspath += sourceSets.main.compileClasspath + sourceSets.test.compileClasspath
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    useJUnitPlatform()
+
+    // Enable JaCoCo
+    jacoco {
+        destinationFile = file("$buildDir/jacoco/integrationTest.exec")
     }
 }
 
-
-// code coverage
+// ------------------ JACOCO CONFIG ------------------
 jacoco {
     toolVersion = "0.8.14"
 }
 
-jacocoTestCoverageVerification {
+// Unit test coverage report
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// ------------------ COMBINED COVERAGE FOR VERIFICATION ------------------
+// Create a merged report including integration tests
+tasks.register('jacocoMergedReport', JacocoReport) {
+    group = "verification"
+    description = "Merged JaCoCo report (unit + integration)"
+
+    dependsOn test, 'integrationTest'
+
+    classDirectories.setFrom files(sourceSets.main.output)
+    sourceDirectories.setFrom files(sourceSets.main.allSource.srcDirs)
+    executionData.setFrom files(
+            "$buildDir/jacoco/test.exec",
+            "$buildDir/jacoco/integrationTest.exec"
+    )
+
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// Coverage verification including integration tests
+tasks.register('jacocoFullCoverageVerification', JacocoCoverageVerification) {
+    group = "verification"
+    description = "Verify coverage including unit + integration tests"
+
+    dependsOn test, 'integrationTest'
+
+    classDirectories.setFrom files(sourceSets.main.output)
+    executionData.setFrom files(
+            "$buildDir/jacoco/test.exec",
+            "$buildDir/jacoco/integrationTest.exec"
+    )
+
     violationRules {
         rule {
             limit {
@@ -124,25 +171,11 @@ jacocoTestCoverageVerification {
     }
 }
 
-jacocoTestReport {
-    dependsOn test
-}
-jacocoTestCoverageVerification {
-    dependsOn test
-}
-
-tasks.register('integrationTest', Test) {
-    description = 'Runs integration tests'
-    group = 'verification'
-
-    testClassesDirs = sourceSets.integrationTest.output.classesDirs
-    classpath = sourceSets.integrationTest.runtimeClasspath
-
-    useJUnitPlatform()
-}
-
+// ------------------ IDEA CONFIG ------------------
 idea {
     module {
-        sourceSets.integrationTest.allSource.srcDirs.each { srcDir -> module.testSourceDirs += srcDir }
+        sourceSets.integrationTest.allSource.srcDirs.each { srcDir ->
+            module.testSourceDirs += srcDir
+        }
     }
 }
