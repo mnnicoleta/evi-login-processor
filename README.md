@@ -1,5 +1,7 @@
 # evi-login-processor
 
+Developed based on requirements from docs folder: assessment.txt
+
 ## Project Description
 
 The **evi-login-processor** is a **Spring Boot reactive microservice** built with **Spring WebFlux** and **Reactor Kafka
