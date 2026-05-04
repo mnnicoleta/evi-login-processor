@@ -75,9 +75,6 @@ class LoginTrackingResultMapperTest {
         assertThat(entity.getMessageId()).isEqualTo(resultEvent.messageId());
         assertThat(entity.getCustomerIp()).isEqualTo(resultEvent.customerIp());
         assertThat(entity.getRequestResult()).isEqualTo(resultEvent.requestResult());
-
-        // Ignored DB-generated field should remain null
-        assertThat(entity.getLoginResultId()).isNull();
     }
 
     @Test

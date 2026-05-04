@@ -5,6 +5,7 @@ import com.evi.login.processor.mapper.LoginTrackingResultMapper;
 import com.evi.login.processor.model.LoginTrackingResultEvent;
 import com.evi.login.processor.model.RequestResult;
 import com.evi.login.processor.repository.LoginTrackingRepository;
+import com.evi.login.processor.transaction.ReactiveTransactionExecutor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -25,6 +26,7 @@ class CustomerLoginResultConsumerTest {
     private LoginTrackingResultMapper mapper;
     private KafkaReceiver<String, LoginTrackingResultEvent> receiver;
     private CustomerLoginResultConsumer consumer;
+    private ReactiveTransactionExecutor transactionExecutor;
 
     @BeforeEach
     void setup() {
@@ -32,10 +34,16 @@ class CustomerLoginResultConsumerTest {
         sender = mock(KafkaSender.class);
         mapper = mock(LoginTrackingResultMapper.class);
         receiver = mock(KafkaReceiver.class);
+        transactionExecutor = mock(ReactiveTransactionExecutor.class);
+
+        when(transactionExecutor.execute(any()))
+                .thenAnswer(invocation -> {
+                    return invocation.getArgument(0); // 👈 NO TRANSACTION, PURE PASS-THROUGH
+                });
 
         when(receiver.receive()).thenReturn(Flux.empty());
 
-        consumer = new CustomerLoginResultConsumer(repository, sender, mapper, receiver);
+        consumer = new CustomerLoginResultConsumer(repository, sender, mapper, receiver, transactionExecutor);
     }
 
     @Test

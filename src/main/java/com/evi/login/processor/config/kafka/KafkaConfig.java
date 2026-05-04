@@ -1,4 +1,4 @@
-package com.evi.login.processor.kafka;
+package com.evi.login.processor.config.kafka;
 
 import com.evi.login.processor.entity.LoginTrackingResultEntity;
 import com.evi.login.processor.model.CustomerLoginEvent;
@@ -10,7 +10,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import reactor.kafka.receiver.KafkaReceiver;
@@ -22,9 +21,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.evi.login.processor.kafka.KafkaConstants.*;
+import static com.evi.login.processor.config.kafka.KafkaConstants.*;
 
-@Profile("local")
 @Configuration
 public class KafkaConfig {
 

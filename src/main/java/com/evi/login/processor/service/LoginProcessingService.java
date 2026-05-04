@@ -14,7 +14,7 @@ import reactor.util.retry.Retry;
 
 import java.time.Duration;
 
-import static com.evi.login.processor.kafka.KafkaConstants.CUSTOMER_LOGIN_RESULT;
+import static com.evi.login.processor.config.kafka.KafkaConstants.CUSTOMER_LOGIN_RESULT;
 import static com.evi.login.processor.util.Utils.extractHeader;
 
 
@@ -75,11 +75,11 @@ public class LoginProcessingService {
                 .flatMap(result -> {
                     // create a Kafka record
                     ProducerRecord<String, LoginTrackingResultEvent> producerRecord =
-                            new ProducerRecord<>(CUSTOMER_LOGIN_RESULT, event.customerId().toString(), result);
+                            new ProducerRecord<>(CUSTOMER_LOGIN_RESULT, event.messageId().toString(), result);
 
                     // wrap in SenderRecord for KafkaSender
                     SenderRecord<String, LoginTrackingResultEvent, String> senderRecord =
-                            SenderRecord.create(producerRecord, event.customerId().toString());
+                            SenderRecord.create(producerRecord, event.messageId().toString());
 
                     // send reactive stream
                     return loginTrackingResultEventSender
@@ -102,11 +102,11 @@ public class LoginProcessingService {
 
         // create a Kafka record
         ProducerRecord<String, LoginTrackingResultEvent> producerRecord =
-                new ProducerRecord<>(CUSTOMER_LOGIN_RESULT, event.customerId().toString(), unsuccessfulResult);
+                new ProducerRecord<>(CUSTOMER_LOGIN_RESULT, event.messageId().toString(), unsuccessfulResult);
 
         // wrap in SenderRecord for KafkaSender
         SenderRecord<String, LoginTrackingResultEvent, String> senderRecord =
-                SenderRecord.create(producerRecord, event.customerId().toString());
+                SenderRecord.create(producerRecord, event.messageId().toString());
 
         // send reactive stream
         return loginTrackingResultEventSender

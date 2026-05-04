@@ -25,8 +25,8 @@
         "type": 3
       },
       "seed": 1978004895,
-      "version": 4021,
-      "versionNonce": 337791116,
+      "version": 4023,
+      "versionNonce": 1795751612,
       "isDeleted": false,
       "boundElements": [
         {
@@ -34,7 +34,7 @@
           "id": "tibgIOQ4Wect6xybpCxuO"
         }
       ],
-      "updated": 1773684931132,
+      "updated": 1773838313418,
       "link": null,
       "locked": false
     },
@@ -58,20 +58,20 @@
       "index": "b1K",
       "roundness": null,
       "seed": 1374939583,
-      "version": 3631,
-      "versionNonce": 1549883148,
+      "version": 3632,
+      "versionNonce": 1563074308,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1773684931132,
+      "updated": 1773838295603,
       "link": null,
       "locked": false,
-      "text": "message:\ncustomerId (uuid)\nusername\nclient \n(web/android/ios)\ntimestamp\nmessageId (uuid)\ncustomerIp\n",
+      "text": "message1:\ncustomerId (uuid)\nusername\nclient \n(web/android/ios)\ntimestamp\nmessageId (uuid)\ncustomerIp\n",
       "fontSize": 16.286402054758593,
       "fontFamily": 6,
       "textAlign": "left",
       "verticalAlign": "middle",
       "containerId": "Obo6YsE3L94FhGgOAwsmo",
-      "originalText": "message:\ncustomerId (uuid)\nusername\nclient (web/android/ios)\ntimestamp\nmessageId (uuid)\ncustomerIp\n",
+      "originalText": "message1:\ncustomerId (uuid)\nusername\nclient (web/android/ios)\ntimestamp\nmessageId (uuid)\ncustomerIp\n",
       "autoResize": true,
       "lineHeight": 1.25,
       "baseline": 178
@@ -85,7 +85,7 @@
       "height": 113.61415544730428,
       "angle": 0,
       "strokeColor": "#f08c00",
-      "backgroundColor": "#ffec99",
+      "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
@@ -98,8 +98,8 @@
         "type": 3
       },
       "seed": 1013864927,
-      "version": 3290,
-      "versionNonce": 1073478324,
+      "version": 3291,
+      "versionNonce": 1202781444,
       "isDeleted": false,
       "boundElements": [
         {
@@ -115,7 +115,7 @@
           "type": "arrow"
         }
       ],
-      "updated": 1773684940515,
+      "updated": 1773838301328,
       "link": null,
       "locked": false
     },
@@ -280,10 +280,10 @@
     {
       "id": "sFIRiQcarUSO_ReItEu8t",
       "type": "text",
-      "x": 415.57648447785704,
-      "y": 145.75948979783024,
-      "width": 167.28323364257812,
-      "height": 61.07400770534473,
+      "x": 412.8538663748297,
+      "y": 135.58048851360613,
+      "width": 172.7284698486328,
+      "height": 81.43201027379297,
       "angle": 0,
       "strokeColor": "#1971c2",
       "backgroundColor": "transparent",
@@ -297,23 +297,23 @@
       "index": "b1S",
       "roundness": null,
       "seed": 53410495,
-      "version": 3583,
-      "versionNonce": 1987650868,
+      "version": 3598,
+      "versionNonce": 1230884668,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1773684993798,
+      "updated": 1773838325483,
       "link": null,
       "locked": false,
-      "text": "A producer publishes the \nlogin events on TOPIC \n\"customer-login\"",
+      "text": "An external producer \npublishes the login events \non TOPIC \"customer-\nlogin\"",
       "fontSize": 16.286402054758593,
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "dhkHrXewSd1hzrsxeceS2",
-      "originalText": "A producer publishes the login events on TOPIC \"customer-login\"",
+      "originalText": "An external producer publishes the login events on TOPIC \"customer-login\"",
       "autoResize": true,
       "lineHeight": 1.25,
-      "baseline": 56
+      "baseline": 76
     },
     {
       "id": "LDQC84kTQWFyaWCo6wN6Z",
@@ -405,7 +405,7 @@
       "height": 155.5041254784067,
       "angle": 0,
       "strokeColor": "#f08c00",
-      "backgroundColor": "#ffec99",
+      "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
@@ -418,8 +418,8 @@
         "type": 3
       },
       "seed": 1546326047,
-      "version": 3507,
-      "versionNonce": 2044397708,
+      "version": 3508,
+      "versionNonce": 1896909828,
       "isDeleted": false,
       "boundElements": [
         {
@@ -435,7 +435,7 @@
           "type": "arrow"
         }
       ],
-      "updated": 1773685016732,
+      "updated": 1773838308242,
       "link": null,
       "locked": false
     },
@@ -817,6 +817,76 @@
       },
       "startArrowhead": null,
       "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "version": 4126,
+      "versionNonce": 279054468,
+      "isDeleted": false,
+      "id": "PQ_6FilO0KcTSp32T8Ku2",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 986.9214334296355,
+      "y": 804.9877041903409,
+      "strokeColor": "#f08c00",
+      "backgroundColor": "#ffc9c9",
+      "width": 152.38866723163812,
+      "height": 214,
+      "seed": 2122863364,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "sXteZj81urcUEPqf6XUzC"
+        }
+      ],
+      "updated": 1773838278354,
+      "link": null,
+      "locked": false
+    },
+    {
+      "type": "text",
+      "version": 3753,
+      "versionNonce": 1577402628,
+      "isDeleted": false,
+      "id": "sXteZj81urcUEPqf6XUzC",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 991.9214334296355,
+      "y": 810.1976913480996,
+      "strokeColor": "#f08c00",
+      "backgroundColor": "transparent",
+      "width": 117.09190368652344,
+      "height": 203.58002568448242,
+      "seed": 2072990340,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1773838285752,
+      "link": null,
+      "locked": false,
+      "fontSize": 16.286402054758593,
+      "fontFamily": 6,
+      "text": "message2:\ncustomerId (uuid)\nusername\nclient \n(web/android/ios)\ntimestamp\nmessageId (uuid)\ncustomerIp\nrequestResult\n",
+      "textAlign": "left",
+      "verticalAlign": "middle",
+      "containerId": "PQ_6FilO0KcTSp32T8Ku2",
+      "originalText": "message2:\ncustomerId (uuid)\nusername\nclient (web/android/ios)\ntimestamp\nmessageId (uuid)\ncustomerIp\nrequestResult\n",
+      "lineHeight": 1.25,
+      "baseline": 198
     }
   ],
   "appState": {

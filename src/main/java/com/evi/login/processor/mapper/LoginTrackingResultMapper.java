@@ -14,6 +14,5 @@ public interface LoginTrackingResultMapper {
     @Mapping(target = "requestResult", expression = "java(com.evi.login.processor.model.RequestResult.UNSUCCESSFUL)")
     LoginTrackingResultEvent toResult(CustomerLoginEvent customerLoginEvent);
 
-    @Mapping(target = "loginResultId", ignore = true)
     LoginTrackingResultEntity toEntity(LoginTrackingResultEvent loginTrackingResultEvent);
 }

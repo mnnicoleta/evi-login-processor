@@ -4,6 +4,7 @@ import com.evi.login.processor.consumer.CustomerLoginConsumer;
 import com.evi.login.processor.consumer.CustomerLoginResultConsumer;
 import com.evi.login.processor.repository.LoginTrackingRepository;
 import com.evi.login.processor.service.LoginProcessingService;
+import com.evi.login.processor.transaction.ReactiveTransactionExecutor;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -51,5 +52,11 @@ public class TestBeansConfig {
     @Primary
     public CustomerLoginResultConsumer customerLoginResultConsumer() {
         return Mockito.mock(CustomerLoginResultConsumer.class);
+    }
+
+    @Bean
+    @Primary
+    public ReactiveTransactionExecutor reactiveTransactionExecutor() {
+        return Mockito.mock(ReactiveTransactionExecutor.class);
     }
 }

@@ -5,6 +5,7 @@ import com.evi.login.processor.model.CustomerLoginEvent;
 import com.evi.login.processor.model.LoginTrackingResultEvent;
 import com.evi.login.processor.model.RequestResult;
 import com.evi.login.processor.service.LoginProcessingService;
+import com.evi.login.processor.transaction.ReactiveTransactionExecutor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -23,16 +24,24 @@ class CustomerLoginConsumerTest {
     private CustomerLoginConsumer consumer;
     private LoginTrackingResultMapper mapper;
     private KafkaReceiver<String, CustomerLoginEvent> kafkaReceiverCustomerLoginEvent;
+    private ReactiveTransactionExecutor transactionExecutor;
 
     @BeforeEach
     void setup() {
         mapper = Mockito.mock(LoginTrackingResultMapper.class);
         service = mock(LoginProcessingService.class);
+        transactionExecutor = mock(ReactiveTransactionExecutor.class);
+
         kafkaReceiverCustomerLoginEvent = mock(KafkaReceiver.class);
+
+        when(transactionExecutor.execute(any()))
+                .thenAnswer(invocation -> {
+                    return invocation.getArgument(0); // 👈 NO TRANSACTION, PURE PASS-THROUGH
+                });
 
         when(kafkaReceiverCustomerLoginEvent.receive()).thenReturn(Flux.empty());
 
-        consumer = new CustomerLoginConsumer(service, mapper, kafkaReceiverCustomerLoginEvent);
+        consumer = new CustomerLoginConsumer(service, mapper, kafkaReceiverCustomerLoginEvent, transactionExecutor);
     }
 
     @Test

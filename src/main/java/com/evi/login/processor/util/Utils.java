@@ -1,14 +1,12 @@
 package com.evi.login.processor.util;
 
+import lombok.experimental.UtilityClass;
 import org.apache.kafka.common.header.Headers;
 
 import java.nio.charset.StandardCharsets;
 
+@UtilityClass
 public final class Utils {
-
-    private Utils() {
-        /* This utility class should not be instantiated */
-    }
 
     public static String extractHeader(Headers headers, String key) {
         if (headers == null) return null;

@@ -1,0 +1,31 @@
+Create a spring boot app ‘login-processing-service’ that:
+- processes the login events,
+- sends a REST request to a specific url,
+- publishes the result of rest request to specific kafka topic,
+- stores customer login event as an entity with the result to database.
+
+    1. The app should read the kafka message from ‘customer-login’ topic.
+
+    2. The message has following attributes:
+        customerId (uuid)
+        username
+        client (web/android/ios)
+        timestamp
+        messageId (uuid)
+        customerIp
+
+    3. The REST request is sent to the following endpoint of another service
+    https://customer-tracking-service/v1/api/trackLoging/{customerId} with basic authentication.
+
+    4.The result of the request is either ‘successful’ or ‘unsuccessful’.
+    Result is considered successful if the client receives the http-200 response.
+    If request fails, it can be retried 3 times. If it fails after 3rd retry it can be considered as unsuccessful.
+
+    5. The ‘login-tracking-result’ event should contain all fields from ‘customer-login’ event, and additionally the ‘request-result’ attribute.
+
+    6. The login-tracking-result event should be stored as an entity into DB, which exactly DB to use. The choice of database is at your discretion.
+
+The code should be covered with unit and integration tests (with WireMock and a Testcontainer Kafka) and 90% coverage.
+
+Notes: the topics are not existing and rest api is targeting to a dummy service and are given as examples,
+so the minimum expectation is that app is targeted to those topics and API, and actual reading, publishing is not happening.

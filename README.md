@@ -2,11 +2,15 @@
 
 ## Project Description
 
-The **evi-login-processor** is a Spring Boot reactive microservice designed to process customer login events in
-real-time using **Apache Kafka** and **WebFlux**. The service ensures **exactly-once processing** for each login event,
+The **evi-login-processor** is a **Spring Boot reactive microservice** built with **Spring WebFlux** and **Reactor Kafka
+** to process customer login events in real-time. The service ensures **exactly-once processing** for each login event,
 avoiding duplicate database saves or duplicate event publishing.
 
-Architecture diagram : [evi-login-tracker.excalidraw](./docs/evi-login-tracker.v0.excalidraw)
+High-level architecture diagram:
+
+[evi-login-tracker.v0.excalidraw](./docs/evi-login-tracker.v0.excalidraw)
+
+[evi-login-tracker.v1.excalidraw](./docs/evi-login-tracker.v1.excalidraw)
 
 It handles the following workflow:
 
@@ -30,11 +34,9 @@ It handles the following workflow:
 ### 2. Consumer Group 1: `consumer-customer-login`
 
 * Reads messages from the `customer-login` topic.
-* Performs a REST call to the **customer tracking service** for each event.
+* Performs a **REST call to the customer tracking service** for each event using **WebClient**.
 * Retries the REST call **up to 3 times** in case of failure.
 * Publishes the enriched result to the topic `customer-login-result`.
-
----
 
 ### 3. Consumer Group 2: `consumer-customer-login-result`
 
@@ -58,24 +60,25 @@ It handles the following workflow:
 
 ## Exactly-Once Processing
 
-The service ensures **no duplicates** by:
+The service guarantees **no duplicate processing** by:
 
-1. Consuming each Kafka message **only once**.
-2. Persisting the login event **only once** in the database.
+1. Consuming each Kafka message **exactly once** using **Reactor Kafka transactional producers**.
+2. Persisting each login event **exactly once** in the database.
 3. Publishing the tracking result message **exactly once** after a successful database save.
 
-This guarantees reliable end-to-end message processing without message loss or duplication.
+This ensures reliable end-to-end processing with **exactly-once semantics**.
 
 ---
 
 ## Technology Stack
 
 * **Spring Boot** (WebFlux, Reactive)
-* **Apache Kafka** (Producer + Consumer)
-* **Spring Data R2DBC (Reactive Repository for database access) / Reactive Repository** for database access
+* **Reactor Kafka** for reactive Kafka integration
+* **Spring Data R2DBC** for reactive database access
 * **WebClient** for REST API calls
 * **Gradle** for build automation
-* **JUnit 5 + WireMock + Testcontainers** for integration tests
+* **JUnit 5 + WireMock + Testcontainers** for unit and integration tests
+* **Jacoco** for code coverage (≥ 90%)
 
 ---
 
@@ -136,6 +139,7 @@ login-tracking-result topic
 
 * Integration tests use **Testcontainers Kafka** and **WireMock** for simulating REST calls.
 * Unit tests cover **service logic** with at least 90% code coverage (Jacoco reports).
+* Reactive flows and transactional guarantees are fully tested end-to-end.
 
 ---
 
@@ -144,3 +148,4 @@ login-tracking-result topic
 * The service is **fully reactive** and handles backpressure naturally.
 * REST failures are retried **3 times**, and failures after that are marked as `'unsuccessful'`.
 * Database save is **transactional** to avoid duplicates.
+* Uses Reactor Kafka transactions to guarantee exactly-once delivery across Kafka and the database.

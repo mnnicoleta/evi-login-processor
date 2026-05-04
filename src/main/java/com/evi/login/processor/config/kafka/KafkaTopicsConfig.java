@@ -1,4 +1,4 @@
-package com.evi.login.processor.kafka;
+package com.evi.login.processor.config.kafka;
 
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.config.TopicBuilder;
 
-import static com.evi.login.processor.kafka.KafkaConstants.*;
+import static com.evi.login.processor.config.kafka.KafkaConstants.*;
 
 @Profile({"local"})
 @Configuration

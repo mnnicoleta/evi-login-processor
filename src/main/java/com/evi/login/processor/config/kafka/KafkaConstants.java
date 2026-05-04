@@ -1,4 +1,4 @@
-package com.evi.login.processor.kafka;
+package com.evi.login.processor.config.kafka;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
