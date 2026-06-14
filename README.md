@@ -1,6 +1,6 @@
 # evi-login-processor
 
-Developed based on requirements from docs folder: assessment.txt
+Developed based on requirements: docs/requirements/requirements.txt
 
 ## Project Description
 
@@ -10,9 +10,7 @@ avoiding duplicate database saves or duplicate event publishing.
 
 High-level architecture diagram:
 
-[evi-login-tracker.v0.excalidraw](./docs/evi-login-tracker.v0.excalidraw)
-
-[evi-login-tracker.v1.excalidraw](./docs/evi-login-tracker.v1.excalidraw)
+[evi-login-tracker.v0.excalidraw](docs/architecture/evi-login-tracker.v0.excalidraw)
 
 It handles the following workflow:
 
@@ -151,3 +149,5 @@ login-tracking-result topic
 * REST failures are retried **3 times**, and failures after that are marked as `'unsuccessful'`.
 * Database save is **transactional** to avoid duplicates.
 * Uses Reactor Kafka transactions to guarantee exactly-once delivery across Kafka and the database.
+* Could be improved by adjusting to the following
+  architecture: [evi-login-tracker.v1.excalidraw](docs/architecture/evi-login-tracker.v1.excalidraw) 
